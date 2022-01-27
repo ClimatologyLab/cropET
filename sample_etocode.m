@@ -9,8 +9,8 @@ lon1=ncread('http://thredds.northwestknowledge.net:8080/thredds/dodsC/MET/summar
 flat=find(lat1>=34 & lat1<=42);
 flon=find(lon1>-124.5 & lon1<=-118);
 
-lon=lon(flon);
-lat=lat(flat);
+lon=lon1(flon);
+lat=lat1(flat);
 [lon,lat]=meshgrid(lon,lat);
 
 mm={'Jun';'Jul';'Aug'}
@@ -27,22 +27,25 @@ eto=permute(eto,[2 1 4 3]);
 % if you want to clip by county, download + extract this shapefile
 % https://data.ca.gov/dataset/ca-geographic-boundaries/resource/b0007416-a325-4777-9295-368ea6b710e6
 
-m=shaperead('CA_Counties_TIGER2016')
-l=shapeinfo('CA_Counties_TIGER2016')
+m=shaperead('CA_Counties/CA_Counties_TIGER2016')
+l=shapeinfo('CA_Counties/CA_Counties_TIGER2016')
 p1=l.CoordinateReferenceSystem;
 for i=1:58
-    nn=cell2mat(m.ncst(i,1));
-    mout(i).lon=nn(:,1);
-    mout(i).lat=nn(:,2);
-    mout(i).name=m.dbfdata(i,1);
+[m(i).lat,m(i).lon]=projinv(p1,m(i).X,m(i).Y);
 end
 
 % for example #28 is Yolo county
 
-a=inpolygon(mout(28).lon,mout(28).lat,lon,lat);
+a=inpolygon(lon,lat,m(28).lon,m(28).lat);
 a=find(a==1); % this just identifies indice of pixels in Yolo county
 
 eto=permute(eto,[3 4 1 2]);
 
 yoloeto=squeeze(nanmean(eto(:,:,a),3));
 
+figure(1)
+subplot(2,1,1)
+pcolor(lon,lat,squeeze(mean(sum(eto,1),2)));shading flat;colorbar
+title('1979-2021 mean ETo_{JJA}')
+subplot(2,1,2);
+plot(1979:2021,squeeze(sum(yoloeto,1)));ylabel('ETo_{JJA} Yolo county (mm)');
